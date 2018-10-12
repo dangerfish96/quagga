@@ -288,6 +288,8 @@ AC_ARG_ENABLE(bgpd,
   AS_HELP_STRING([--disable-bgpd], [do not build bgpd]))
 AC_ARG_ENABLE(ripd,
   AS_HELP_STRING([--disable-ripd], [do not build ripd]))
+AC_ARG_ENABLE(i2rs,
+  AS_HELP_STRING([--disable-i2rs], [do not build i2rs]))
 AC_ARG_ENABLE(ripngd,
   AS_HELP_STRING([--disable-ripngd], [do not build ripngd]))
 AC_ARG_ENABLE(ospfd,
@@ -1234,6 +1236,13 @@ else
 fi
 AM_CONDITIONAL(RIPD, test "x$RIPD" = "xripd")
 
+if test "${enable_i2rs}" = "no";then
+  I2RS=""
+else
+  I2RS="i2rs"
+fi
+AM_CONDITIONAL(I2RS, test "x$I2RS" = "xi2rs")
+
 if test "${enable_ospfd}" = "no";then
   OSPFD=""
 else
@@ -1308,6 +1317,7 @@ AC_SUBST(RIPNGD)
 AC_SUBST(OSPFD)
 AC_SUBST(OSPF6D)
 AC_SUBST(NHRPD)
+AC_SUBST(I2RS)
 AC_SUBST(WATCHQUAGGA)
 AC_SUBST(ISISD)
 AC_SUBST(PIMD)
@@ -1610,6 +1620,7 @@ AC_SUBST(quagga_statedir)
 
 AC_DEFINE_UNQUOTED(PATH_ZEBRA_PID, "$quagga_statedir/zebra.pid",zebra PID)
 AC_DEFINE_UNQUOTED(PATH_RIPD_PID, "$quagga_statedir/ripd.pid",ripd PID)
+AC_DEFINE_UNQUOTED(PATH_I2RS_PID, "$quagga_statedir/i2rs.pid",i2rs PID)
 AC_DEFINE_UNQUOTED(PATH_RIPNGD_PID, "$quagga_statedir/ripngd.pid",ripngd PID)
 AC_DEFINE_UNQUOTED(PATH_BGPD_PID, "$quagga_statedir/bgpd.pid",bgpd PID)
 AC_DEFINE_UNQUOTED(PATH_OSPFD_PID, "$quagga_statedir/ospfd.pid",ospfd PID)
@@ -1651,7 +1662,7 @@ AC_MSG_RESULT($ac_cv_htonl_works)
 
 AC_CONFIG_FILES([Makefile lib/Makefile qpb/Makefile zebra/Makefile ripd/Makefile 
 	  ripngd/Makefile bgpd/Makefile ospfd/Makefile watchquagga/Makefile
-	  ospf6d/Makefile isisd/Makefile vtysh/Makefile
+	  ospf6d/Makefile isisd/Makefile vtysh/Makefile i2rs/Makefile
 	  doc/Makefile ospfclient/Makefile tests/Makefile m4/Makefile
 	  pimd/Makefile nhrpd/Makefile
 	  redhat/Makefile
