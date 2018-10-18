@@ -3,6 +3,10 @@
 AM_CPPFLAGS = -I.. -I$(top_srcdir) -I$(top_srcdir)/lib -I$(top_builddir)/lib
 DEFS = @DEFS@ -DSYSCONFDIR=\"$(sysconfdir)/\"
 INSTALL_SDATA=@INSTALL@ -m 600
+LIBS = @LIBS@ @CURSES@ @LIBPAM@
+i2rs_LDADD = ../lib/libzebra.la @LIBCAP@ @LIBREADLINE@
+
+
 
 AM_CFLAGS = $(WERROR)
 
@@ -13,7 +17,7 @@ noinst_HEADERS = \
 		         i2rs.h i2rs_debug.h i2rs_interface.h
 
 i2rs_SOURCES = \
-	               i2rs_main.c
+	               i2rs.c
 
 #examplesdir = $(exampledir)
 #dist_examples_DATA = i2rs.conf.sample

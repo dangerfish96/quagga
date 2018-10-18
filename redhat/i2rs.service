@@ -1,0 +1,14 @@
+[Unit]
+Description=I2RS
+Wants=network.target
+Before=network.target
+After=network-pre.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/sysconfig/quagga
+ExecStart=/usr/sbin/i2rs
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
