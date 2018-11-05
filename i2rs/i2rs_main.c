@@ -13,6 +13,7 @@
 #include "../lib/sigevent.h"
 #include "../lib/command.h"
 #include "../lib/thread.h"
+#include "../lib/version.h"
 #include <getopt.h>
 #include <signal.h>
 
@@ -36,12 +37,35 @@
  */
 
 
+/* i2rsd privileges */
+zebra_capabilities_t _caps_p [] = 
+  {
+  ZCAP_NET_RAW,
+  ZCAP_BIND
+};
+struct zebra_privs_t i2rs_privs =
+{
+#if defined(QUAGGA_USER)
+  .user = QUAGGA_USER,
+#endif
+#if defined QUAGGA_GROUP
+  .group = QUAGGA_GROUP,
+#endif
+#ifdef VTY_GROUP
+  .vty_group = VTY_GROUP,
+#endif
+  .caps_p = _caps_p,
+  .cap_num_p = 2,
+  .cap_num_i = 0
+};
+
+
 /*
  * *  GLOBALS
  */
 
-char config_current[] = I2RS_DEFAULT_CONFIG;
 char config_default[] = SYSCONFDIR I2RS_DEFAULT_CONFIG;
+char *config_file = NULL;
 /* zebra does #define  SYSCONFDIR
  */
 
@@ -102,13 +126,13 @@ struct thread_master *master;
 
 /* These 2 are defined somewhere else, say in libzapd.a
  */
-#ifdef REALLY_DUMMY
+/* #ifdef REALLY_DUMMY
 void i2rs_init(void) {return;};
 void i2rs_terminate(void) {return;};
 #else
-void i2rs_init(void);
-void i2rs_terminate(void);
-#endif
+i2rs_init(master);
+i2rs_terminate(void);
+#endif */
 
 /* Help information display. */
 static void
@@ -132,14 +156,14 @@ Report bugs to %s\n", progname, ZEBRA_BUG_ADDRESS);
   exit (status);
 }
 
+int vty_port = 0;
+char *vty_addr = NULL;
 
 int main(int argc, char** argv, char** envp) {
   char *p;
-  int vty_port = 0;
   int daemon_mode = 0;
   char *config_file = NULL;
   struct thread thread;
-  static char *vty_addr = NULL;
 
           
   umask(0027);
@@ -183,7 +207,7 @@ int main(int argc, char** argv, char** envp) {
       vty_addr = optarg;
       break;
 	case 'v':
-	  printf("0.1");
+	  printf("0.1\n");
 	  exit (0);
 	  break;
 	case 'h':
@@ -194,7 +218,6 @@ int main(int argc, char** argv, char** envp) {
 	  break;
 	}
     }
- 
 /* one to control them all, ... */
   master = thread_master_create ();
 /* this the main thread controlling structure,
@@ -215,18 +238,24 @@ int main(int argc, char** argv, char** envp) {
  * which are mostly only useful for humans on the vty
  */
 
+  i2rs_init(master);
   vty_init (master);
-  memory_init ();
   access_list_init ();
+  memory_init ();
+  zprivs_init (&i2rs_privs);
+
+
+  //
 //  prefix_list_init ();
 /* these are all from libzebra
  */
 
               
 /*
- * ZAP inits
+ I2RS*  inits
  */
-  i2rs_init();
+  test(master);
+  //i2rs_init(master);
 /* this is implemented somewhere, e.g. on libi2rs.a
  * here, you could start some threads (the thread subsystem
  * is not running yet), register some commands, ...
@@ -252,10 +281,8 @@ int main(int argc, char** argv, char** envp) {
 /* start the TCP and unix socket listeners
  */
 
-
   /* Print banner. */
-//zlog (NULL, LOG_INFO, "ZAP (%s) starts", ZEBRA_VERSION);
-    
+zlog_notice ("I2RS %s starting: vty@%d", QUAGGA_VERSION, vty_port);
   /* Fetch next active thread. */
     thread_main (master);
 /* this is the main event loop */

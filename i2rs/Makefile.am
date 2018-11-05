@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in.
 
-AM_CPPFLAGS = -I.. -I$(top_srcdir) -I$(top_srcdir)/lib -I$(top_builddir)/lib
+AM_CPPFLAGS = -g -Wall -I.. -I$(top_srcdir) -I$(top_srcdir)/lib -I$(top_builddir)/lib
 DEFS = @DEFS@ -DSYSCONFDIR=\"$(sysconfdir)/\"
 INSTALL_SDATA=@INSTALL@ -m 600
 LIBS = @LIBS@ @CURSES@ @LIBPAM@
@@ -12,11 +12,10 @@ AM_CFLAGS = $(WERROR)
 
 sbin_PROGRAMS = i2rs
 
-noinst_HEADERS = \
-		         i2rs.h i2rs_debug.h i2rs_interface.h
+noinst_HEADERS = i2rs.h
 
-i2rs_SOURCES = \
-	                i2rs.c i2rs_main.c
+i2rs_SOURCES = i2rs3.c i2rs_zebra.c
+##	                i2rs.c i2rs_main.c
 
 #examplesdir = $(exampledir)
 #dist_examples_DATA = i2rs.conf.sample
