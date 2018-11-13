@@ -91,18 +91,36 @@ void test2(struct zclient *zclient){
                           inet_ntoa (p->prefix), p->prefixlen, dist);
 
   }
-
+/*
 static int noop(int a,struct zclient *zclient ,unsigned short b,unsigned short c){
-	printf("test");
 	return 0;
 }
 void connected(struct zclient *zclient){
 	 zclient_send_requests (zclient, VRF_DEFAULT);
-	test(zclient);
+//	run_netconfd(zclient,argcSave,argvSave);
+//	test(zclient);
 }
-int main(){
+*/
+void i2rs_terminate(){
+	shutdown_netconfd();
+	zclient_stop(zclient);
+	zclient_free(zclient);
+	thread_master_free(master);
+	exit(0);
+}
+int main(int argc, char ** argv){
+	
 	master = thread_master_create ();
+	
+	struct i2rs* i2rs = (struct i2rs*)malloc(sizeof(struct i2rs));
+	i2rs->argc = argc;
+	i2rs->argv = argv;
+	i2rs->master = master;
+	i2rs->zclient = zclient;
 	zclient = zclient_new (master);
+    thread_execute (master, run_netconfd, (void*)i2rs, 0);
+	
+	signal_init2(master);
 	zclient_init (zclient, ZEBRA_ROUTE_STATIC);
 	zclient->zebra_connected = connected;
 	//zclient->interface_add = i2rs_interface_add;
