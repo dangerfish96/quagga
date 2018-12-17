@@ -25,6 +25,8 @@
 #include "i2rs.h"
 #include "zclient.h"
 
+#include "i2rs_netconf_module2.h"
+
 
 #define NETCONFD_MOD       (const xmlChar *)"netconfd"
 #define NETCONFD_EX_MOD       (const xmlChar *)"netconfd-ex"
@@ -35,7 +37,6 @@
   static fd_set active_fd_set;
   static fd_set read_fd_set;
   static fd_set write_fd_set;
-
 
 
 static status_t load_base_schema (void)
@@ -76,6 +77,8 @@ static status_t load_core_schema ( agt_profile_t *profile )
 
 
 }
+
+
 
 static status_t cmn_init ( int argc, char**argv,boolean *showver,
                            help_mode_t *showhelpmode, boolean *validate_config_only_mode)
@@ -122,6 +125,7 @@ static status_t cmn_init ( int argc, char**argv,boolean *showver,
     if (res != NO_ERR) {
         return res;
     }
+    
 
     /* Initialize the Netconf Server Library with command line and conf file 
      * parameters */
@@ -147,17 +151,35 @@ static status_t cmn_init ( int argc, char**argv,boolean *showver,
         return res;
     }
 
+    y_i2rs2_init("i2rs2","22");
+    y_i2rs2_init2();
     /* finish initializing server data structures */
     res = agt_init2();
     if (res != NO_ERR) {
         return res;
     }
-
     log_debug("\nnetconfd init OK, ready for sessions\n");
 
     return NO_ERR;
 
 }
+static void show_server_banner (void)
+{
+#define BANNER_BUFFLEN 32
+
+    xmlChar buff[BANNER_BUFFLEN];
+    status_t  res;
+
+    if (LOGINFO) {
+        res = ncx_get_version(buff, BANNER_BUFFLEN);
+        if (res == NO_ERR) {
+            log_info("\nRunning netconfd server (%s)\n", buff);
+        } else {
+            log_info("\nRunning netconfd server\n");
+        }
+    }
+
+}  /* show_server_banner */
 static status_t
     netconfd_run (void)
 {
@@ -171,6 +193,33 @@ static status_t
     return res;
 
 }  /* netconfd_run */
+static void show_version(void)
+{
+    xmlChar versionbuffer[NCX_VERSION_BUFFSIZE];
+
+    status_t res = ncx_get_version(versionbuffer, NCX_VERSION_BUFFSIZE);
+    if (res == NO_ERR) {
+        log_write( "\nnetconfd version %s\n", versionbuffer );
+    } else {
+        SET_ERROR( res );
+    }
+    agt_request_shutdown(NCX_SHUT_EXIT);
+}
+
+static void netconfd_cleanup (void)
+{
+
+    if (LOGINFO) {
+        log_info("\nShutting down the netconfd server\n");
+    }
+
+    /* Cleanup the Netconf Server Library */
+    agt_cleanup();
+
+    /* cleanup the NCX engine and registries */
+    ncx_cleanup();
+
+}  /* netconfd_cleanup */
 
 
 int run_netconfd(struct thread* thread){
@@ -185,21 +234,50 @@ int run_netconfd(struct thread* thread){
       mtrace();
   #endif
 
+    /* this loop is used to implement the restart command the sw image is not 
+     * reloaded; instead everything is cleaned up and re-initialized from 
+     * scratch. If the shutdown operation (or Ctl-C exit) is used instead of 
+     * restart, then the loop will only be executed once */
+    while (!done) {
+        res = cmn_init( i2rs->argc, i2rs->argv, &showver, &showhelpmode, &validate_config_only_mode);
 
-	cmn_init(i2rs->argc, i2rs->argv,&showver, &showhelpmode, &validate_config_only_mode);
-	res = agt_ncxserver_run();
-	if (res != NO_ERR) {
-          log_error("\nncxserver failed (%s)", get_error_string(res));
-		shutdown_netconfd();
-      }
-	return NO_ERR;
-}
-void shutdown_netconfd(){
-	/* Cleanup the Netconf Server Library */
-      agt_cleanup();
-  
-      /* cleanup the NCX engine and registries */
-      ncx_cleanup();
+        if (res != NO_ERR) {
+            log_error( "\nnetconfd: init returned (%s)",
+                       get_error_string(res) );
+            agt_request_shutdown(NCX_SHUT_EXIT);
+        } else {
+            if (showver) {
+                show_version();
+            } else if (showhelpmode != HELP_MODE_NONE) {
+                help_program_module( NETCONFD_MOD, NETCONFD_CLI, showhelpmode );
+                agt_request_shutdown(NCX_SHUT_EXIT);
+            } else if (validate_config_only_mode) {
+                agt_request_shutdown(NCX_SHUT_EXIT);
+            } else {
+                res = netconfd_run();
+                if (res != NO_ERR) {
+                    agt_request_shutdown(NCX_SHUT_EXIT);
+                }
+            }
+        }
 
-	agt_request_shutdown(NCX_SHUT_EXIT);
+        netconfd_cleanup();
+        print_error_count();
+if ( NCX_SHUT_EXIT == agt_shutdown_mode_requested() ) {
+            done = TRUE;
+        }
+    }
+
+    print_errors();
+    print_error_count();
+
+    if ( !log_is_open() ) {
+        printf("\n");
+    }
+	i2rs_terminate();
+#ifdef MEMORY_DEBUG
+    muntrace();
+#endif
+
+    return res;
 }

@@ -3,6 +3,58 @@
 #include "../lib/log.h"
 #include "../lib/if.h"
 #include "i2rs.h"
+void
+i2rs_zebra_ipv4_delete (struct prefix_ipv4 *p, struct in_addr *nexthop,
+                   u_int32_t metric, struct zclient * zclient)
+{
+  struct zapi_ipv4 api;
+
+  if (zclient->redist[ZEBRA_ROUTE_STATIC])
+    {
+          api.vrf_id = VRF_DEFAULT;
+      api.type = ZEBRA_ROUTE_STATIC;
+      api.flags = 0;
+      api.message = 0;
+      api.safi = SAFI_UNICAST;
+      SET_FLAG (api.message, ZAPI_MESSAGE_NEXTHOP);
+      api.nexthop_num = 1;
+      api.nexthop = &nexthop;
+      api.ifindex_num = 0;
+      SET_FLAG (api.message, ZAPI_MESSAGE_METRIC);
+      api.metric = metric;
+
+      zapi_ipv4_route (ZEBRA_IPV4_ROUTE_DELETE, zclient, p, &api);
+    }
+}
+void
+  i2rs_zebra_ipv4_add (struct prefix_ipv4 *p, struct in_addr *nexthop,
+                 u_int32_t metric, ifindex_t ifindex,struct  zclient *zclient)
+  {
+    struct zapi_ipv4 api;
+
+    if (zclient->redist[ZEBRA_ROUTE_STATIC])
+      {
+
+        api.type = ZEBRA_ROUTE_STATIC;
+        api.vrf_id = VRF_DEFAULT;
+        api.flags = 0;
+        api.message = 0;
+
+                //needed?
+        api.safi = SAFI_UNICAST;
+
+        SET_FLAG (api.message, ZAPI_MESSAGE_NEXTHOP);
+        api.nexthop_num = 1;
+        api.nexthop = &nexthop;
+        api.ifindex_num = 0;
+        SET_FLAG (api.message, ZAPI_MESSAGE_METRIC);
+        api.metric = metric;
+                printf("Sending message...\n");
+
+        zapi_ipv4_route (ZEBRA_IPV4_ROUTE_ADD, zclient, p, &api);
+      }
+  }
+
 /* Interface addition message from zebra. */
   int
   i2rs_interface_add (int command, struct zclient *zclient, zebra_size_t length,
@@ -12,7 +64,7 @@
   
     ifp = zebra_interface_add_read (zclient->ibuf, vrf_id);
   
-      zlog_debug ("interface add %s index %d flags %#llx metric %d mtu %d",
+    zlog_debug ("interface add %s index %d flags %#llx metric %d mtu %d",
                   ifp->name, ifp->ifindex, (unsigned long long) ifp->flags,
                   ifp->metric, ifp->mtu);
 	return 0;
@@ -29,13 +81,13 @@ int
     /* zebra_interface_state_read() updates interface structure in iflist */
     ifp = zebra_interface_state_read (s, vrf_id);
   
-    if (ifp == NULL)
+    if (ifp == NULL){
       return 0;
-  
+    }
     zlog_info("interface delete %s index %d flags %#llx metric %d mtu %d",
               ifp->name, ifp->ifindex, (unsigned long long) ifp->flags,
               ifp->metric, ifp->mtu);
-	return 0;
+    return 0;
 }
   int i2rs_interface_state_up (int command, struct zclient *zclient,
                          zebra_size_t length, vrf_id_t vrf_id)
@@ -44,9 +96,9 @@ int
 
     ifp = zebra_interface_state_read (zclient->ibuf,vrf_id);
   
-    if (ifp == NULL)
+    if (ifp == NULL){
       return 0;
-  
+    }
       zlog_debug ("Zebra: Interface[%s] state change to up.", ifp->name);
   
     return 0;
@@ -60,9 +112,9 @@ int
   
     ifp = zebra_interface_state_read (zclient->ibuf,vrf_id);
   
-    if (ifp == NULL)
+    if (ifp == NULL){
       return 0;
-  
+  	}
       zlog_debug ("Zebra: Interface[%s] state change to down.", ifp->name);
   
     return 0;
@@ -75,15 +127,14 @@ int i2rs_interface_address_add (int command, struct zclient *zclient,
 
   ifc = zebra_interface_address_read (command, zclient->ibuf, vrf_id);
   
-  if (ifc == NULL)
+  if (ifc == NULL){
     return 0;
-  
+  }
   p = ifc->address;
   if (p->family == AF_INET)
     {
 	zlog_debug ("Zebra: new IPv4 address %s/%d added on interface %s.",
 		    inet_ntoa(p->u.prefix4), p->prefixlen, ifc->ifp->name);
-
     }
   return 0;
 }
@@ -94,16 +145,16 @@ struct connected *ifc;
 
 ifc = zebra_interface_address_read (command, zclient->ibuf, vrf_id);
 
-if (ifc == NULL)
-return 0;
-
+if (ifc == NULL){
+	return 0;
+}
 zlog_debug ("Zebra: Address deleted.");
 connected_free (ifc);
 
 return 0;
 }
 
-void zclient_read_zapi_ipv4( struct zclient* zclient,
+static void zclient_read_zapi_ipv4( struct zclient* zclient,
  struct zapi_ipv4 *zapi, struct prefix_ipv4* p,
  unsigned int* ifindex,  struct in_addr* nexthop) 
 {
@@ -146,7 +197,7 @@ int i2rs_zebra_route_manage (int command, struct zclient *zclient,
 
   struct prefix_ipv4 p;
   struct zapi_ipv4 zapi;
-  unsigned int ifindex;
+  unsigned int ifindex = 0;
   struct in_addr nexthop;
 
   zclient_read_zapi_ipv4( zclient, &zapi, &p,&ifindex,&nexthop);
@@ -162,11 +213,11 @@ int i2rs_zebra_route_manage (int command, struct zclient *zclient,
   }
   return 0;
 }
-void connected(struct zclient *zclient){                                                                      
-     zclient_send_requests (zclient, VRF_DEFAULT);                                                            
+//void connected(struct zclient *zclient){                                                                      
+ //    zclient_send_requests (zclient, VRF_DEFAULT);                                                            
 //  run_netconfd(zclient,argcSave,argvSave);                                                                  
 //  test(zclient);                                                                                            
-}  
+//}  
 int noop(int a,struct zclient *zclient ,unsigned short b,unsigned short c){                            
       return 0;                                                                                                 
   }

@@ -28,12 +28,20 @@ sigusr1 (void)
   zlog_rotate (NULL);
 }
 
+static void
+sigterm (void)
+{
+  zlog (NULL, LOG_INFO, "Terminating on signal");
+  i2rs_terminate ();
+  exit(0);
+}
 
  struct quagga_signal_t sighandlers[] = {
       { .signal = SIGUSR1, .handler = &sigusr1, },
+      { .signal = SIGTERM, .handler = &sigterm, },
       { .signal = SIGINT,  .handler = &sigint, },
       { .signal = SIGHUP, .handler = &sighup, },
 };
-void signal_init2(struct thread_master * master){
+void signal_init3(struct thread_master * master){
 	signal_init(master,3,sighandlers);
 }
