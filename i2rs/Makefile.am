@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in.
 
-AM_CPPFLAGS = -g -Wall -I.. -I$(top_srcdir) -I$(top_srcdir)/lib -I$(top_builddir)/lib -I$(top_builddir)/yuma/netconf/src/ -I$(top_builddir)/yuma/netconf/src/platform -I$(top_srcdir)/yuma/netconf/src/mgr -I$(top_builddir)/yuma/netconf/src/agt -I$(top_builddir)/yuma/netconf/src/ncx -I$(top_srcdir)/yuma/netconf/src/ydump $(XML_CPPFLAGS)
+AM_CPPFLAGS = -g3 -Wall -I.. -I$(top_srcdir) -I$(top_srcdir)/lib -I$(top_builddir)/lib -I$(top_builddir)/yuma/netconf/src/ -I$(top_builddir)/yuma/netconf/src/platform -I$(top_srcdir)/yuma/netconf/src/mgr -I$(top_builddir)/yuma/netconf/src/agt -I$(top_builddir)/yuma/netconf/src/ncx -I$(top_srcdir)/yuma/netconf/src/ydump $(XML_CPPFLAGS)
 
 
 DEFS = @DEFS@ -DSYSCONFDIR=\"$(sysconfdir)/\"

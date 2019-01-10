@@ -10,6 +10,7 @@ struct i2rs {
 	struct socket * socket;
 };
 
+
 extern void signal_init2(void);
 extern void signal_init3(struct thread_master * master);
 extern void signal_cleanup(void);
@@ -31,6 +32,7 @@ extern int i2rs_interface_address_add (int command, struct zclient *zclient, zeb
 extern int i2rs_interface_address_delete (int command, struct zclient *zclient, zebra_size_t length,vrf_id_t vrf_id);
 extern  int i2rs_zebra_route_manage (int command, struct zclient *zclient, zebra_size_t length, vrf_id_t vrf_id);
 
+
 void
   i2rs_zebra_ipv4_add (struct prefix_ipv4 *p, struct in_addr *nexthop,
                    u_int32_t metric, ifindex_t ifindex,struct  zclient *zclient);
@@ -44,6 +46,11 @@ extern int run_netconfd(struct thread * thread);
 extern int run_netconfd2(struct thread * thread);
 extern void shutdown_netconfd(void);
 struct socket_command{
-	struct zapi_ipv4 zapi;
-	int type;
-};
+        struct in_addr nexthop __attribute__((__packed__));
+	char mtype;
+        unsigned char type;
+	int metric;
+	struct prefix_ipv4 p __attribute__((__packed__));
+} __attribute__((__packed__));
+void  i2rs_zebra_ipv4 (int mtype, struct prefix_ipv4 *p, struct in_addr *nexthop,
+                     u_int32_t metric, struct zclient * zclient);

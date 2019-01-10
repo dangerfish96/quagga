@@ -1,6 +1,7 @@
 #include "../lib/zclient.h"
 #include "../lib/thread.h"
 #include "../lib/log.h"
+#include "../lib/table.h"
 #include "i2rs.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -34,9 +35,9 @@ void test(struct zclient * zclient){
       struct prefix_ipv4 *p = (struct prefix_ipv4*) malloc(sizeof(struct prefix_ipv4));
       p->family = AF_INET;
       p->prefixlen = 24;
-	ifindex_t ifindex = 0;
+      ifindex_t ifindex = 0;
       int dist = 1;
-      inet_aton("172.16.0.1",next_hop);
+      inet_aton("127.0.0.1",next_hop);
       inet_aton("8.8.8.8",&p->prefix);
       i2rs_zebra_ipv4_add ((struct prefix_ipv4 *) p, next_hop,
                                            dist,ifindex,zclient);
@@ -52,7 +53,7 @@ void test2(struct zclient * zclient){
       p->family = AF_INET;
       p->prefixlen = 24;
       int dist = 1;
-      inet_aton("172.16.0.1",next_hop);
+      inet_aton("127.0.0.1",next_hop);
       inet_aton("8.8.8.8",&p->prefix);
       i2rs_zebra_ipv4_delete ((struct prefix_ipv4 *) p, next_hop,
                                            dist,zclient);
@@ -65,6 +66,8 @@ void connected(struct zclient *zclient){
 	zclient_send_requests (zclient, VRF_DEFAULT);
 	printf("Zebra is connected\n");
 	thread_add_read (master, receive, (void*)i2rs, i2rs->netconfd_fd);
+	//test(zclient);
+	//test2(zclient);
 }
 void i2rs_terminate(){
 	
@@ -86,33 +89,39 @@ int main(int argc, char ** argv){
 	i2rs->argc = argc;
 	i2rs->argv = argv;
 	i2rs->master = master;
-	i2rs->zclient = zclient;
 	zclient = zclient_new (master);
+	i2rs->zclient = zclient;
 	signal_init3(master);
 
 	zclient_init (zclient, ZEBRA_ROUTE_STATIC);
 	zclient->zebra_connected = connected;
 	//zclient->interface_add = i2rs_interface_add;
 	zclient->interface_add = noop;
-    zclient->interface_delete = i2rs_interface_delete;
+    zclient->interface_delete = noop;
     //zclient->interface_address_add = i2rs_interface_address_add;
     zclient->interface_address_add = noop;
-    zclient->interface_address_delete = i2rs_interface_address_delete;
+    //zclient->interface_address_delete = i2rs_interface_address_delete;
+    zclient->interface_address_delete = noop;
     zclient->ipv4_route_add = i2rs_zebra_route_manage;
     zclient->ipv4_route_delete = i2rs_zebra_route_manage;
-    zclient->interface_up = i2rs_interface_state_up;
-    zclient->interface_down = i2rs_interface_state_down;
+    //zclient->interface_up = i2rs_interface_state_up;
+    zclient->interface_up = noop;
+    //zclient->interface_down = i2rs_interface_state_down;
+    zclient->interface_down = noop;
 	thread_main (master);
 }
+
+
 int receive(struct thread * thread){
     union sockunion su;
-    i2rs = THREAD_ARG(thread);
+    struct i2rs * i2rs = THREAD_ARG(thread);
     int accept_sock = THREAD_FD(thread);
     int fd = sockunion_accept (accept_sock, &su);
-    struct socket_command * msg = (struct socket_command *)malloc(sizeof(struct socket_command*));
+    struct socket_command * msg = (struct socket_command *)malloc(sizeof(struct socket_command)+sizeof(struct prefix_ipv4) + sizeof(struct in_addr));
 
-    int	cc = read(fd, msg, sizeof(msg));
+    int	cc = read(fd, msg, sizeof(struct socket_command) + sizeof(struct prefix_ipv4)+ sizeof(struct in_addr));
     if(cc > 0){
+      i2rs_zebra_ipv4 (msg->mtype, &(msg->p), &(msg->nexthop), msg->metric, zclient);
         if(write(fd, msg, sizeof(msg)) < 0)
             printf("write to client %d error, close!\n", fd);
 	thread_add_read (i2rs->master, receive, (void*)i2rs, i2rs->netconfd_fd);

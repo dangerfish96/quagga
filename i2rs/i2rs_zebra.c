@@ -3,15 +3,13 @@
 #include "../lib/log.h"
 #include "../lib/if.h"
 #include "i2rs.h"
-void
-i2rs_zebra_ipv4_delete (struct prefix_ipv4 *p, struct in_addr *nexthop,
-                   u_int32_t metric, struct zclient * zclient)
-{
+void i2rs_zebra_ipv4 (int mtype, struct prefix_ipv4 *p, struct in_addr *nexthop,
+                   u_int32_t metric, struct zclient * zclient){
   struct zapi_ipv4 api;
 
   if (zclient->redist[ZEBRA_ROUTE_STATIC])
     {
-          api.vrf_id = VRF_DEFAULT;
+      api.vrf_id = VRF_DEFAULT;
       api.type = ZEBRA_ROUTE_STATIC;
       api.flags = 0;
       api.message = 0;
@@ -20,6 +18,34 @@ i2rs_zebra_ipv4_delete (struct prefix_ipv4 *p, struct in_addr *nexthop,
       api.nexthop_num = 1;
       api.nexthop = &nexthop;
       api.ifindex_num = 0;
+      SET_FLAG (api.message, ZAPI_MESSAGE_METRIC);
+      api.metric = metric;
+
+	 zapi_ipv4_route (mtype, zclient, p, &api);
+	printf("Changing route setting for prefix %s",inet_ntoa(p->prefix));
+	printf("/%i ",p->prefixlen);
+	printf("with nexthop %s\n",inet_ntoa(**api.nexthop));
+}
+}
+
+void
+i2rs_zebra_ipv4_delete (struct prefix_ipv4 *p, struct in_addr *nexthop,
+                   u_int32_t metric, struct zclient * zclient)
+{
+  struct zapi_ipv4 api;
+
+  if (zclient->redist[ZEBRA_ROUTE_STATIC])
+    {
+      api.vrf_id = VRF_DEFAULT;
+      api.type = ZEBRA_ROUTE_STATIC;
+      api.flags = 0;
+      api.message = 0;
+      api.safi = SAFI_UNICAST;
+      SET_FLAG (api.message, ZAPI_MESSAGE_NEXTHOP);
+      api.nexthop_num = 1;
+      api.nexthop = &nexthop;
+      api.ifindex_num = 0;
+      api.ifindex = 0;
       SET_FLAG (api.message, ZAPI_MESSAGE_METRIC);
       api.metric = metric;
 
