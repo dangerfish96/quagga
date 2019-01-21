@@ -5,3 +5,5 @@
 # will have an eaiser time.
 
 autoreconf -i
+git submodule init
+git submodule update --merge --remote
