@@ -15,6 +15,11 @@
 #include <errno.h>
 
 #include "socket/PassiveServer.h"
+#include "tlpi-dist/lib/create_pid_file.h"
+
+#include <getopt.h>
+#include "log.h"
+#include "version.h"
 
 #define PORT 8888
 
@@ -23,11 +28,42 @@ struct thread_master *master;
 struct thread *test3;
 struct i2rs* i2rs;
 struct zclient *zclient = NULL;
+const char * progname = "i2rsd";
 
 int receive(struct thread * thread);
 int socket_loop(struct thread * thread);
 int socketSelect(struct thread * thread);
 
+
+struct option longopts[] = 
+{
+  { "daemon",      no_argument,       NULL, 'd'},
+  { "pid_file", required_argument, NULL, 'p'},
+  { "help",        no_argument,       NULL, 'h'},
+  { "version",     no_argument,       NULL, 'v'},
+  { 0 }                                                                
+};
+
+usage (int status)
+{
+  if (status != 0)
+    fprintf (stderr, "Try `%s --help' for more information.\n", progname);
+  else
+    {    
+      printf ("Usage : %s [OPTION...]\n\
+Daemon which manages ZAP.\n\n\
+-d, --daemon       Runs in daemon mode\n\
+-p, --pid_file  Set pid file name\n\
+-v, --version      Print program version\n\
+-h, --help         Display this help and exit\n\
+\n\
+Report bugs to %s\n", progname, ZEBRA_BUG_ADDRESS);
+    }
+  exit (status);
+}
+void print_version(){
+	printf("1.0");
+}
 static 
 void test(struct zclient * zclient){
 //      struct i2rs * i2rs = THREAD_ARG(thread);
@@ -80,11 +116,44 @@ void i2rs_terminate(){
 	exit(0);
 }
 int main(int argc, char ** argv){
-	
+	int daemon_mode = 0;	
+	char *pid_file;
+
+ while (1) 
+    {
+      int opt;
+            
+      opt = getopt_long (argc, argv, "dlp:h:v", longopts, 0);
+                      
+      if (opt == EOF)
+	break;
+                                    
+      switch (opt) 
+	{
+	case 0:
+	  break;
+	case 'd':
+	  daemon_mode = 1;
+	  break;
+	case 'p':
+	  pid_file = optarg;
+	  printf("pid file: %s\n", pid_file);
+	  break;
+	case 'v':
+	  print_version ();
+	  exit (0);
+	  break;
+	case 'h':
+	  usage (0);
+	  break;
+	default:
+	  usage (1);
+	  break;
+	}
+    }
 	master = thread_master_create ();
 	
-
-	i2rs = (struct i2rs*)malloc(sizeof(struct i2rs));
+     	i2rs = (struct i2rs*)malloc(sizeof(struct i2rs));
     	i2rs->netconfd_fd = create_tcp_server(PORT);
 	i2rs->argc = argc;
 	i2rs->argv = argv;
@@ -108,8 +177,14 @@ int main(int argc, char ** argv){
     zclient->interface_up = noop;
     //zclient->interface_down = i2rs_interface_state_down;
     zclient->interface_down = noop;
+    if (daemon_mode){
+	daemon (0, 0);
+    }
+    if (pid_file != NULL){
+	createPidFile(progname, pid_file, 0);
+    }
 	thread_main (master);
-}
+    }
 
 
 int receive(struct thread * thread){
