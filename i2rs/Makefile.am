@@ -6,7 +6,7 @@ AM_CPPFLAGS = -g3 -Wall -I.. -I$(top_srcdir) -I$(top_srcdir)/lib -I$(top_builddi
 DEFS = @DEFS@ -DSYSCONFDIR=\"$(sysconfdir)/\"
 INSTALL_SDATA=@INSTALL@ -m 600
 LIBS = @LIBS@ @CURSES@ @LIBPAM@
-i2rsd_LDADD = ../yuma/netconf/src/agt/libyumaagt.la ../yuma/netconf/src/ncx/libyumancx.la ../yuma/netconf/src/mgr/libyumamgr.la ../yuma/netconf/src/yangrpc/libyangrpc.la ../lib/libzebra.la @LIBCAP@ @LIBREADLINE@ tlpi-dist/lib/create_pid_file.o tlpi-dist/lib/region_locking.o tlpi-dist/lib/error_functions.o 
+i2rsd_LDADD = ../lib/libzebra.la @LIBCAP@ @LIBREADLINE@ tlpi-dist/lib/create_pid_file.o tlpi-dist/lib/region_locking.o tlpi-dist/lib/error_functions.o 
 
 
 
