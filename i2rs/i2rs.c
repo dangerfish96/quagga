@@ -55,6 +55,7 @@ usage (int status)
 Daemon which manages ZAP.\n\n\
 -d, --daemon       Runs in daemon mode\n\
 -p, --pid_file  Set pid file name\n\
+-p, --netconfd_port  Set port for netconf communication\n\
 -v, --version      Print program version\n\
 -h, --help         Display this help and exit\n\
 \n\
