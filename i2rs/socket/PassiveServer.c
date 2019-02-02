@@ -16,7 +16,7 @@ int start_server(int port, int type){
     bzero(&server_addr, sizeof(struct sockaddr_in));
     server_addr.sin_family = AF_INET; 
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(PORT);
+    server_addr.sin_port = htons(port);
  
     if(bind(ss, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0){
         printf("bind error\n");

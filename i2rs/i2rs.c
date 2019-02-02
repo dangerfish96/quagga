@@ -11,6 +11,7 @@
 
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 
@@ -118,12 +119,12 @@ void i2rs_terminate(){
 int main(int argc, char ** argv){
 	int daemon_mode = 0;	
 	char *pid_file;
+	int netconfd_port = 8888;
 
  while (1) 
     {
       int opt;
-            
-      opt = getopt_long (argc, argv, "dlp:h:v", longopts, 0);
+      opt = getopt_long (argc, argv, "dlPp:h:v", longopts, 0);
                       
       if (opt == EOF)
 	break;
@@ -134,6 +135,9 @@ int main(int argc, char ** argv){
 	  break;
 	case 'd':
 	  daemon_mode = 1;
+	  break;
+	case 'P':
+	    netconfd_port = atoi(optarg);
 	  break;
 	case 'p':
 	  pid_file = optarg;
@@ -154,7 +158,7 @@ int main(int argc, char ** argv){
 	master = thread_master_create ();
 	
      	i2rs = (struct i2rs*)malloc(sizeof(struct i2rs));
-    	i2rs->netconfd_fd = create_tcp_server(PORT);
+    	i2rs->netconfd_fd = create_tcp_server(netconfd_port);
 	i2rs->argc = argc;
 	i2rs->argv = argv;
 	i2rs->master = master;
